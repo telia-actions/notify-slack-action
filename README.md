@@ -29,6 +29,23 @@ steps:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
 ```
 
+### Running a workflow only on the specified branch
+
+To run the notifier for a specific branch, you can utilize the either `github.ref_name` for pushes or `github.head_ref` for pull requests. For example, if you want to run the notifier only on the **origin/main** branch for pushes the following would constrain the workflow to that branch:
+
+```yaml
+steps:
+  - name: Notify Slack Action
+    uses: ravsamhq/notify-slack-action@2.3.0
+    if: ${{ always() && github.ref_name == 'main' }}
+    with:
+      status: ${{ job.status }}
+      notify_when: "failure"
+      notification_title: "{workflow} is failing"
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.ACTION_MONITORING_SLACK }}
+```
+
 ### Extended Example without User Mentions
 
 ![](screenshots/without-mentions.png)
@@ -43,7 +60,6 @@ steps:
       notification_title: "{workflow} has {status_message}"
       message_format: "{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}>"
       footer: "Linked Repo <{repo_url}|{repo}> | <{workflow_url}|View Workflow>"
-      notify_when: "failure"
     env:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 ```
@@ -99,6 +115,7 @@ mention_groups: "SAZ94GDB8,!channel"
 The following variables are available for formatting your own strings.
 
 - {branch}
+- {branch_url}
 - {commit_url}
 - {commit_sha}
 - {emoji}
@@ -112,11 +129,11 @@ The following variables are available for formatting your own strings.
 
 You can use these to construct custom `notification_title`, `message_format` and `footer`.
 
-> In order to use `{workflow_url}`, specify as the token input as `token: ${{ secrets.GITHUB_TOKEN }}`.
+> In order to use `{workflow_url}`, specify the `token` input as `token: ${{ secrets.GITHUB_TOKEN }}`.
 
-The above mentioned strings are available by default. However, you can use the following method to ue any kind of data available in GitHub Actions:
+The above mentioned strings are available by default. However, you can use the following method to use any kind of data available in GitHub Actions:
 
-1. Add the following step to get all the information related to your Github context
+1. Add the following step to get all the information related to your GitHub context
 
 ```yml
 steps:
@@ -173,7 +190,7 @@ footer:
 notify_when:
   description: Specify on which events a slack notification is sent
   required: false
-  default: "success,failure,warnings"
+  default: "success,failure,cancelled,warnings,skipped"
 
 mention_users:
   description: Specify the slack IDs of users you want to mention.
@@ -183,7 +200,7 @@ mention_users:
 mention_users_when:
   description: Specify on which events you want to mention the users
   required: false
-  default: "success,failure,warnings"
+  default: "success,failure,cancelled,warnings,skipped"
 
 mention_groups:
   description: Specify the slack IDs of groups you want to mention
@@ -193,7 +210,7 @@ mention_groups:
 mention_groups_when:
   description: Specify on which events you want to mention the groups
   required: false
-  default: "success,failure,warnings"
+  default: "success,failure,cancelled,warnings,skipped"
 
 icon_success:
   description: Specify on icon to be used when event is success
@@ -205,10 +222,20 @@ icon_failure:
   required: false
   default: ":x:"
 
+icon_cancelled:
+  description: Specify on icon to be used when event is cancelled
+  required: false
+  default: ":x:"
+
 icon_warnings:
   description: Specify on icon to be used when event is warnings
   required: false
   default: ":large_orange_diamond:"
+
+icon_skipped:
+  description: Specify on icon to be used when event is skipped
+  required: false
+  default: ":fast_forward:"
 ```
 
 ## Development
@@ -226,12 +253,6 @@ cd notify-slack-action
 npm install
 ```
 
-Before commit run (dist folder should be included):
-
-```bash
-npm run all
-```
-
 ## Versioning
 
 This project uses [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/ravsamhq/notify-slack-action/tags).
@@ -244,8 +265,10 @@ This project uses [SemVer](http://semver.org/) for versioning. For the versions 
 
 - [Ravgeet Dhillon](https://github.com/ravgeetdhillon)
 - [Jirka Borovec](https://github.com/Borda)
+- [Vlad Pronsky](https://github.com/vladkens)
+- [erezarnon](https://github.com/erezarnon)
 
-> Special shoutout to [Vlad Pronsky](https://github.com/vladkens) for porting the Python action to Typescript.
+> Special shoutout to [Vlad Pronsky](https://github.com/vladkens) for porting the original Python based code to Typescript.
 
 ## Extra
 

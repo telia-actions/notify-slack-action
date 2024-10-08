@@ -2,29 +2,35 @@ import { getInput, setFailed } from "@actions/core"
 import { context } from "@actions/github"
 import fetch from "node-fetch"
 
-type JobStatus = "success" | "failure" | "warning"
+type JobStatus = "success" | "failure" | "cancelled" | "warning" | "skipped"
 
 const actionColor = (status: JobStatus) => {
   if (status === "success") return "good"
   if (status === "failure") return "danger"
+  if (status === "cancelled") return "danger"
+  if (status === "skipped") return "#4a4a4a"
   return "warning"
 }
 
 const actionStatus = (status: JobStatus) => {
   if (status === "success") return "passed"
   if (status === "failure") return "failed"
+  if (status === "cancelled") return "cancelled"
+  if (status === "skipped") return "skipped"
   return "passed with warnings"
 }
 
 const actionEmoji = (status: JobStatus) => {
   if (status === "success") return getInput("icon_success")
   if (status === "failure") return getInput("icon_failure")
+  if (status === "cancelled") return getInput("icon_cancelled")
+  if (status === "skipped") return getInput("icon_skipped")
   return getInput("icon_warnings")
 }
 
 const makeMessage = (template: string, values: Record<string, string>) => {
   for (const k of Object.keys(values)) {
-    template = template.replace(`{${k}}`, values[k])
+    template = template.replaceAll(`{${k}}`, values[k])
   }
   return template
 }
@@ -98,8 +104,9 @@ export const buildPayload = async () => {
   const jobStatus = getInput("status") as JobStatus
 
   const patterns: Record<string, string> = {
-    repo: repo,
+    repo,
     branch: context.ref,
+    branch_url: `${repoUrl}/tree/${context.ref.replace("refs/heads/", "")}`,
     commit_sha: context.sha.substring(0, 7),
     commit_url: `${repoUrl}/commit/${context.sha}`,
     repo_url: `${repoUrl}`,
